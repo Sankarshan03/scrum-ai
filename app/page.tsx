@@ -1,5 +1,6 @@
 'use client'
 import { SetStateAction, useState, useEffect, createContext, useContext, useRef } from 'react';
+import { cn } from '@/lib/utils';
 import {
   Card,
   CardHeader,
@@ -35,12 +36,14 @@ function NavigationBar({
   showBack = true,
   continueDisabled = false,
   isStep6 = false,
+  onOnboardNewAgentConfirm,
 }: {
   onBack: () => void;
   onContinue: () => void;
   showBack?: boolean;
   continueDisabled?: boolean;
   isStep6?: boolean;
+  onOnboardNewAgentConfirm?: () => void;
 }) {
   return (
     <div className="absolute top-4 right-4 z-10 flex gap-2">
@@ -55,7 +58,7 @@ function NavigationBar({
       )}
       {isStep6 ? (
         <Button
-          onClick={onContinue}
+          onClick={onOnboardNewAgentConfirm}
           className="bg-blue-700 text-white hover:bg-blue-800 active:bg-blue-900 active:scale-95 transition-transform px-4 py-2 rounded-md shadow-md border border-gray-700 backdrop-blur-sm bg-black/10"
         >
           Onboard New Agent
@@ -140,6 +143,7 @@ function OnboardingProvider({ children }: { children: React.ReactNode }) {
     formal: 'https://example.com/formal.mp3',
   };
   const [loginEmail, setLoginEmail] = useState('');
+  const [showOnboardConfirm, setShowOnboardConfirm] = useState(false);
   const resetAll = () => {
     setStep(1);
     setSelectedAgent(null);
@@ -226,16 +230,19 @@ function OnboardingApp() {
   // Local ref for audio elements
   const audioRefs = useRef<(HTMLAudioElement | null)[]>([]);
 
+  const [showOnboardConfirm, setShowOnboardConfirm] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-900 text-white relative">
       {/* NavigationBar: show on all steps except 1 */}
       {step !== 1 && (
         <NavigationBar
           onBack={goBack}
-          onContinue={step === 6 ? () => { resetAll(); setStep(1); } : goToNext}
+          onContinue={step === 6 ? () => {} : goToNext}
           showBack={step !== 1}
           continueDisabled={isContinueDisabled()}
           isStep6={step === 6}
+          onOnboardNewAgentConfirm={step === 6 ? () => setShowOnboardConfirm(true) : undefined}
         />
       )}
       {/* Step 1: Welcome/Login */}
@@ -384,6 +391,19 @@ function OnboardingApp() {
       {/* Step 3: Tool Integration */}
       {step === 3 && (
         <section className="p-8 relative min-h-screen flex flex-col items-center justify-center">
+          {/* Show selected agent characteristics */}
+          {selectedAgent && (
+            <Card className="mb-8 bg-gray-800 border border-blue-700 w-full max-w-md">
+              <CardHeader className="flex flex-col items-center">
+                <Avatar className="w-16 h-16 mb-2">
+                  <AvatarImage src={selectedAgent.avatar} alt={selectedAgent.name} />
+                  <AvatarFallback>{selectedAgent.name.slice(0,2)}</AvatarFallback>
+                </Avatar>
+                <CardTitle className="text-center text-xl text-white">{selectedAgent.name}</CardTitle>
+                <CardDescription className="text-center text-blue-300">Voice: {selectedAgent.voice}</CardDescription>
+              </CardHeader>
+            </Card>
+          )}
           <h2 className="text-3xl font-semibold mb-6">Integrate Team Tools</h2>
           <p className="mb-4 text-gray-300 max-w-xl text-center">Connect the platforms your team uses. Scrum.ai will use these integrations to fetch data and build context for your agent.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
@@ -655,6 +675,38 @@ function OnboardingApp() {
           </Tabs>
         </section>
       )}
+      {/* Onboard New Agent Confirmation Dialog */}
+      <Dialog open={showOnboardConfirm} onOpenChange={setShowOnboardConfirm}>
+        <BlurredDialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">Onboard New Agent?</DialogTitle>
+          </DialogHeader>
+          <div className="mb-4 text-gray-300">Are you sure you want to onboard a new agent? This will reset all your current onboarding data.</div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" className="text-white" onClick={() => setShowOnboardConfirm(false)}>Cancel</Button>
+            <Button
+              className="bg-blue-700 text-white hover:bg-blue-800"
+              onClick={() => {
+                setShowOnboardConfirm(false);
+                resetAll();
+                setStep(1);
+              }}
+            >
+              Yes, Reset & Start Over
+            </Button>
+          </div>
+        </BlurredDialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+// Custom DialogContent with blurred overlay
+function BlurredDialogContent({ className, ...props }: any) {
+  return (
+    <DialogContent
+      className={cn("backdrop-blur-sm bg-black/40", className)}
+      {...props}
+    />
   );
 }
