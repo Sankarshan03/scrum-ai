@@ -34,11 +34,13 @@ function NavigationBar({
   onContinue,
   showBack = true,
   continueDisabled = false,
+  isStep6 = false,
 }: {
   onBack: () => void;
   onContinue: () => void;
   showBack?: boolean;
   continueDisabled?: boolean;
+  isStep6?: boolean;
 }) {
   return (
     <div className="absolute top-4 right-4 z-10 flex gap-2">
@@ -51,13 +53,22 @@ function NavigationBar({
           ← Back
         </Button>
       )}
-      <Button
-        onClick={onContinue}
-        disabled={continueDisabled}
-        className="bg-white text-black hover:bg-gray-200 active:bg-gray-300 active:scale-95 transition-transform px-4 py-2 rounded-md shadow-md border border-gray-700 backdrop-blur-sm bg-black/10"
-      >
-        Continue
-      </Button>
+      {isStep6 ? (
+        <Button
+          onClick={onContinue}
+          className="bg-blue-700 text-white hover:bg-blue-800 active:bg-blue-900 active:scale-95 transition-transform px-4 py-2 rounded-md shadow-md border border-gray-700 backdrop-blur-sm bg-black/10"
+        >
+          Onboard New Agent
+        </Button>
+      ) : (
+        <Button
+          onClick={onContinue}
+          disabled={continueDisabled}
+          className="bg-blue-700 text-white hover:bg-blue-800 active:bg-blue-900 active:scale-95 transition-transform px-4 py-2 rounded-md shadow-md border border-gray-700 backdrop-blur-sm bg-black/10"
+        >
+          Continue
+        </Button>
+      )}
     </div>
   );
 }
@@ -128,6 +139,7 @@ function OnboardingProvider({ children }: { children: React.ReactNode }) {
     energetic: 'https://example.com/energetic.mp3',
     formal: 'https://example.com/formal.mp3',
   };
+  const [loginEmail, setLoginEmail] = useState('');
   const resetAll = () => {
     setStep(1);
     setSelectedAgent(null);
@@ -143,7 +155,7 @@ function OnboardingProvider({ children }: { children: React.ReactNode }) {
     audioRefs.current = [];
   };
   return (
-    <OnboardingContext.Provider value={{ step, setStep, selectedAgent, setSelectedAgent, integrations, setIntegrations, knowledgeBase, setKnowledgeBase, newKBContent, setNewKBContent, newKBType, setNewKBType, analyticsLoading, setAnalyticsLoading, resetAll, loginEmail: '', setLoginEmail: () => {}, customAgents, setCustomAgents, avatarOptions, voiceSamples }}>
+    <OnboardingContext.Provider value={{ step, setStep, selectedAgent, setSelectedAgent, integrations, setIntegrations, knowledgeBase, setKnowledgeBase, newKBContent, setNewKBContent, newKBType, setNewKBType, analyticsLoading, setAnalyticsLoading, resetAll, loginEmail, setLoginEmail, customAgents, setCustomAgents, avatarOptions, voiceSamples }}>
       {children}
     </OnboardingContext.Provider>
   );
@@ -220,9 +232,10 @@ function OnboardingApp() {
       {step !== 1 && (
         <NavigationBar
           onBack={goBack}
-          onContinue={goToNext}
+          onContinue={step === 6 ? () => { resetAll(); setStep(1); } : goToNext}
           showBack={step !== 1}
           continueDisabled={isContinueDisabled()}
+          isStep6={step === 6}
         />
       )}
       {/* Step 1: Welcome/Login */}
@@ -293,7 +306,6 @@ function OnboardingApp() {
               <Button
                 className="mt-4 w-full bg-blue-700 text-white hover:bg-blue-800 active:bg-blue-900 active:scale-95 transition-transform"
                 onClick={handleLogin}
-                disabled={!loginEmail}
               >
                 Continue
               </Button>
@@ -547,14 +559,36 @@ function OnboardingApp() {
                     {analyticsLoading ? (
                       <div className="h-32 bg-gray-700 rounded animate-pulse flex items-center justify-center text-gray-400">Loading chart...</div>
                     ) : (
-                      <svg width="100%" height="100" viewBox="0 0 200 100">
+                      <svg width="100%" height="140" viewBox="0 0 220 140">
+                        {/* Axes */}
+                        <line x1="30" y1="10" x2="30" y2="120" stroke="#ccc" strokeWidth="2" />
+                        <line x1="30" y1="120" x2="200" y2="120" stroke="#ccc" strokeWidth="2" />
+                        {/* Y-axis labels */}
+                        <text x="10" y="120" fontSize="10" fill="#ccc">0</text>
+                        <text x="10" y="90" fontSize="10" fill="#ccc">10</text>
+                        <text x="10" y="60" fontSize="10" fill="#ccc">20</text>
+                        <text x="10" y="30" fontSize="10" fill="#ccc">30</text>
+                        {/* X-axis labels */}
+                        <text x="30" y="135" fontSize="10" fill="#ccc">Sprint 1</text>
+                        <text x="70" y="135" fontSize="10" fill="#ccc">Sprint 2</text>
+                        <text x="110" y="135" fontSize="10" fill="#ccc">Sprint 3</text>
+                        <text x="150" y="135" fontSize="10" fill="#ccc">Sprint 4</text>
+                        <text x="190" y="135" fontSize="10" fill="#ccc">Sprint 5</text>
+                        {/* Data line */}
                         <polyline
                           fill="none"
                           stroke="#3b82f6"
                           strokeWidth="3"
-                          points="0,80 30,60 60,65 90,40 120,50 150,30 180,40 200,20"
+                          points="30,100 70,80 110,60 150,70 190,40"
                         />
-                        <circle cx="200" cy="20" r="4" fill="#3b82f6" />
+                        {/* Data points */}
+                        <circle cx="30" cy="100" r="4" fill="#3b82f6" />
+                        <circle cx="70" cy="80" r="4" fill="#3b82f6" />
+                        <circle cx="110" cy="60" r="4" fill="#3b82f6" />
+                        <circle cx="150" cy="70" r="4" fill="#3b82f6" />
+                        <circle cx="190" cy="40" r="4" fill="#3b82f6" />
+                        {/* Chart label */}
+                        <text x="60" y="20" fontSize="12" fill="#3b82f6">Velocity (Story Points)</text>
                       </svg>
                     )}
                   </CardContent>
@@ -567,12 +601,36 @@ function OnboardingApp() {
                     {analyticsLoading ? (
                       <div className="h-32 bg-gray-700 rounded animate-pulse flex items-center justify-center text-gray-400">Loading chart...</div>
                     ) : (
-                      <svg width="100%" height="100" viewBox="0 0 200 100">
-                        <rect x="20" y="60" width="20" height="30" fill="#f59e42" />
-                        <rect x="50" y="40" width="20" height="50" fill="#f59e42" />
-                        <rect x="80" y="30" width="20" height="60" fill="#f59e42" />
-                        <rect x="110" y="50" width="20" height="40" fill="#f59e42" />
-                        <rect x="140" y="20" width="20" height="70" fill="#f59e42" />
+                      <svg width="100%" height="140" viewBox="0 0 220 140">
+                        {/* Axes */}
+                        <line x1="30" y1="10" x2="30" y2="120" stroke="#ccc" strokeWidth="2" />
+                        <line x1="30" y1="120" x2="200" y2="120" stroke="#ccc" strokeWidth="2" />
+                        {/* Y-axis labels */}
+                        <text x="10" y="120" fontSize="10" fill="#ccc">0</text>
+                        <text x="10" y="90" fontSize="10" fill="#ccc">20</text>
+                        <text x="10" y="60" fontSize="10" fill="#ccc">40</text>
+                        <text x="10" y="30" fontSize="10" fill="#ccc">60</text>
+                        {/* X-axis labels */}
+                        <text x="30" y="135" fontSize="10" fill="#ccc">Day 1</text>
+                        <text x="70" y="135" fontSize="10" fill="#ccc">Day 2</text>
+                        <text x="110" y="135" fontSize="10" fill="#ccc">Day 3</text>
+                        <text x="150" y="135" fontSize="10" fill="#ccc">Day 4</text>
+                        <text x="190" y="135" fontSize="10" fill="#ccc">Day 5</text>
+                        {/* Data line */}
+                        <polyline
+                          fill="none"
+                          stroke="#f59e42"
+                          strokeWidth="3"
+                          points="30,30 70,50 110,70 150,100 190,120"
+                        />
+                        {/* Data points */}
+                        <circle cx="30" cy="30" r="4" fill="#f59e42" />
+                        <circle cx="70" cy="50" r="4" fill="#f59e42" />
+                        <circle cx="110" cy="70" r="4" fill="#f59e42" />
+                        <circle cx="150" cy="100" r="4" fill="#f59e42" />
+                        <circle cx="190" cy="120" r="4" fill="#f59e42" />
+                        {/* Chart label */}
+                        <text x="60" y="20" fontSize="12" fill="#f59e42">Tasks Remaining</text>
                       </svg>
                     )}
                   </CardContent>
